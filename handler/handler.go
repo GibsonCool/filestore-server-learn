@@ -100,3 +100,31 @@ func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(data)
 }
+
+func DownloadHanler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	fsha1 := r.Form.Get("filehash")
+
+	// 根据下载参数文件的 hash 值查询出 文件元信息
+	fileMeta := meta.GetFileMeta(fsha1)
+
+	// 根据元信息的文件路径打开文件，读取并返回给请求方
+	file, e := os.Open(fileMeta.Location)
+	if e != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	data, e := ioutil.ReadAll(file)
+	if e != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// 设置一下 response header 让浏览器识别支持文件下载, 如果不设置是直接在浏览器展示
+	w.Header().Set("Content-Type", "application/octect-stream")
+	w.Header().Set("Content-Disposition", "attachment;filename=\""+fileMeta.FileName+"\"")
+	w.Write(data)
+}
