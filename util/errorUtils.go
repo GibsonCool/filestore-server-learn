@@ -1,4 +1,4 @@
-package errorUtils
+package util
 
 import "fmt"
 

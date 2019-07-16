@@ -1,12 +1,14 @@
 package handler
 
 import (
-	"filestore-server/errorUtils"
+	"filestore-server/meta"
+	"filestore-server/util"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 )
 
 //UploadHandler： 用于处理文件上传
@@ -27,11 +29,17 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		//读取文件内容
 		file, header, e := r.FormFile("file")
-		errorUtils.SimplePrint(e, errorUtils.FailedGetData)
+		util.SimplePrint(e, util.FailedGetData)
 		defer file.Close()
 
+		fileMeta := meta.FileMeta{
+			FileName: header.Filename,
+			Location: "./tmp/" + header.Filename,
+			UploadAt: time.Now().Format("2006-01-02 15:04:05"),
+		}
+
 		//创建内容接收文件
-		newFile, e := os.Create("./tmp/" + header.Filename)
+		newFile, e := os.Create(fileMeta.Location)
 		if e != nil {
 			fmt.Printf("Failed to create file, err:%s", e.Error())
 			return
@@ -39,11 +47,16 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer newFile.Close()
 
 		//将网络文件内容从内存拷贝到创建的文件中
-		_, e = io.Copy(newFile, file)
+		fileMeta.FileSize, e = io.Copy(newFile, file)
 		if e != nil {
 			fmt.Printf("Failed to save data into file ,err:%s", e.Error())
 			return
 		}
+
+		//将文件的句柄移到头部，计算文件的 sha1 值
+		newFile.Seek(0, 0)
+		fileMeta.FileSha1 = util.FileSha1(newFile)
+		meta.UpdateFileMeta(fileMeta)
 
 		// 上传完成，重定向提示用户
 		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)

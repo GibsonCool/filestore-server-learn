@@ -1,8 +1,8 @@
 package main
 
 import (
-	"filestore-server/errorUtils"
 	"filestore-server/handler"
+	"filestore-server/util"
 	"net/http"
 )
 
@@ -13,5 +13,5 @@ func main() {
 
 	err := http.ListenAndServe(":8080", nil)
 
-	errorUtils.SimplePrint(err, errorUtils.FailedStartServer)
+	util.SimplePrint(err, util.FailedStartServer)
 }
