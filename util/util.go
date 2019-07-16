@@ -71,7 +71,7 @@ func PathExists(path string) (bool, error) {
 func GetFileSize(filename string) int64 {
 	var result int64
 
-	_ := filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
 
 		result = info.Size()
 		return nil
