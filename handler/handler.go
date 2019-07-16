@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -71,8 +72,11 @@ func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetFileMetaHandler:获取文件元信息
+// 浏览器访问---》http://localhost:8080/file/meta?filehash=5913ebee4876c3a3265851e9855b75d1898377f3
 func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
+	//解析请求参数
 	r.ParseForm()
+	//获取参数第一个值
 	filehash := r.Form["filehash"][0]
 	fMeta := meta.GetFileMeta(filehash)
 	data, e := json.Marshal(fMeta)
@@ -81,4 +85,18 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(data)
 
+}
+
+// FileQueryHandler: 查询批量的文件元信息
+func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
+	fileMetas := meta.GetLastFileMetas(limitCnt)
+	data, e := json.Marshal(fileMetas)
+	if e != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(data)
 }
