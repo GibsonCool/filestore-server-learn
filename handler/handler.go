@@ -48,7 +48,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer newFile.Close()
 
-		//将网络文件内容从内存拷贝到创建的文件中
+		//将网络文件内容从内存拷贝到创建的文件中，并复制文件大小 FileSize 字段
 		fileMeta.FileSize, e = io.Copy(newFile, file)
 		if e != nil {
 			fmt.Printf("Failed to save data into file ,err:%s", e.Error())
@@ -58,6 +58,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		//将文件的句柄移到头部，计算文件的 sha1 值
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
+		//meta.UpdateFileMeta(fileMeta)
 		_ = meta.UpdateFileMetaDB(fileMeta)
 
 		// 上传完成，重定向提示用户
@@ -78,7 +79,13 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	//获取参数第一个值
 	filehash := r.Form["filehash"][0]
-	fMeta := meta.GetFileMeta(filehash)
+	//fMeta := meta.GetFileMeta(filehash)
+	fMeta, err := meta.GetFileMetaDB(filehash)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	data, e := json.Marshal(fMeta)
 	if e != nil {
 		w.WriteHeader(http.StatusInternalServerError)

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	myDb "filestore-server/db/mysql"
 	"fmt"
 )
@@ -41,4 +42,31 @@ func OnFileUploadFinished(filehash string, filename string, filesize int64, file
 	}
 
 	return false
+}
+
+type TableFile struct {
+	FileHash string
+	FileName sql.NullString
+	FileSize sql.NullInt64
+	FileAddr sql.NullString
+}
+
+// GetFileMeta: 从 mysql 获取文件元信息
+func GetFileMeta(filehash string) (*TableFile, error) {
+	stmt, e := myDb.DBConn().Prepare("select file_sha1,file_addr,file_name,file_size from tbl_file where file_sha1=? and status =1 limit 1")
+	if e != nil {
+		fmt.Println(e.Error())
+		return nil, e
+	}
+	defer stmt.Close()
+
+	tfile := TableFile{}
+	e = stmt.QueryRow(filehash).Scan(&tfile.FileHash, &tfile.FileAddr, &tfile.FileName, &tfile.FileSize)
+	if e != nil {
+		fmt.Println(e.Error())
+		return nil, e
+	}
+
+	return &tfile, nil
+
 }

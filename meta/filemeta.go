@@ -2,6 +2,7 @@ package meta
 
 import (
 	myDb "filestore-server/db"
+	"fmt"
 	"sort"
 )
 
@@ -46,6 +47,23 @@ func UpdateFileMetaDB(fmeta FileMeta) bool {
 // GetFileMeta: 通过 sha1 值获取文件的元信息
 func GetFileMeta(fileSha1 string) FileMeta {
 	return fileMetas[fileSha1]
+}
+
+// GetFileMetaDB: 从 mysql 通过 sha1 值获取文件的元信息
+func GetFileMetaDB(fileSha1 string) (FileMeta, error) {
+	tableFile, e := myDb.GetFileMeta(fileSha1)
+	if e != nil {
+		return FileMeta{}, e
+	}
+	fmeta := FileMeta{
+		FileSha1: tableFile.FileHash,
+		FileName: tableFile.FileName.String,
+		FileSize: tableFile.FileSize.Int64,
+		Location: tableFile.FileAddr.String,
+	}
+	fmt.Println("fmeta 数据：")
+	fmt.Println(fmeta)
+	return fmeta, nil
 }
 
 // GetLastFileMetas: 获取批量的文件元信息列表
