@@ -1,6 +1,9 @@
 package meta
 
-import "sort"
+import (
+	myDb "filestore-server/db"
+	"sort"
+)
 
 // FileMeta: 文件元信息结构
 type FileMeta struct {
@@ -31,6 +34,13 @@ func init() {
 // UpdateFileMeta: 新增/更新 文件元信息
 func UpdateFileMeta(fmeta FileMeta) {
 	fileMetas[fmeta.FileSha1] = fmeta
+}
+
+// UpdateFileMetaDB: 新增/更新 文件元信息到 mysql 中
+func UpdateFileMetaDB(fmeta FileMeta) bool {
+	return myDb.OnFileUploadFinished(
+		fmeta.FileSha1, fmeta.FileName, fmeta.FileSize, fmeta.Location,
+	)
 }
 
 // GetFileMeta: 通过 sha1 值获取文件的元信息

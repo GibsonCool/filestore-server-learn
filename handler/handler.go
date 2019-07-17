@@ -58,7 +58,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		//将文件的句柄移到头部，计算文件的 sha1 值
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
-		meta.UpdateFileMeta(fileMeta)
+		_ = meta.UpdateFileMetaDB(fileMeta)
 
 		// 上传完成，重定向提示用户
 		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
