@@ -8,6 +8,9 @@ import (
 
 func main() {
 	// 配置路由
+	//配置静态资源处理
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+
 	// 文件操作路由
 	http.HandleFunc("/file/upload", handler.UploadHandler)
 	http.HandleFunc("/file/upload/suc", handler.UploadSucHandler)
@@ -19,6 +22,7 @@ func main() {
 
 	// 用户操作路由
 	http.HandleFunc("/user/signup", handler.SignupHandler)
+	http.HandleFunc("/user/signin", handler.SignInHandler)
 
 	err := http.ListenAndServe(":8080", nil)
 

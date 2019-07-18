@@ -16,7 +16,7 @@ func UserSignUp(username string, passwd string) bool {
 
 	result, e := stmt.Exec(username, passwd)
 	if e != nil {
-		fmt.Println("Failed to inser user, err:" + e.Error())
+		fmt.Println("Failed to insert user, err:" + e.Error())
 		return false
 	}
 
@@ -26,4 +26,48 @@ func UserSignUp(username string, passwd string) bool {
 	}
 
 	return false
+}
+
+// UserSignIn: 判断密码是否一致
+func UserSignIn(username string, encpwd string) bool {
+	stmt, e := myDb.DBConn().Prepare("select * from tbl_user where user_name=? limit 1")
+	if e != nil {
+		fmt.Println("failed to query user,err:" + e.Error())
+		return false
+	}
+
+	rows, e := stmt.Query(username)
+	if e != nil {
+		fmt.Println("Failed to query user by name:" + username + ",err:" + e.Error())
+		return false
+	} else if rows == nil {
+		fmt.Println("username not found:" + username)
+		return false
+	}
+
+	// 如果查询到了用户数据
+	parseRows := myDb.ParseRows(rows)
+	if len(parseRows) > 0 && string(parseRows[0]["user_pwd"].([]byte)) == encpwd {
+		return true
+	}
+	return false
+}
+
+// UpdateToken: 刷新用户登录的token
+func UpdateToken(username string, token string) bool {
+	stmt, e := myDb.DBConn().Prepare("replace into tbl_user_token (`user_name`,`user_token`) values (?,?)")
+	if e != nil {
+		fmt.Println(e.Error())
+		return false
+	}
+	defer stmt.Close()
+
+	_, e = stmt.Exec(username, token)
+	if e != nil {
+		fmt.Println(e.Error())
+		return false
+	}
+
+	return true
+
 }
