@@ -126,7 +126,7 @@ mysql5.7安装后的默认配置文件在/etc/mysql/my.cnf, 而自定义的配�
     mysql> start slave;
     ```
     
-再获取status, 正常应该得到类似如下的输出:
+    再获取status, 正常应该得到类似如下的输出：
 
     ```
     mysql> show slave status \G;
@@ -135,6 +135,8 @@ mysql5.7安装后的默认配置文件在/etc/mysql/my.cnf, 而自定义的配�
     Slave_SQL_Running: Yes 
     // ...
     ```
+        
+    
 到这时说明主从配置已经完成，可以尝试在主mysql的fileserver数据库里建表操作下，然后在从节点上检查数据是否已经同步过来。
 
 
