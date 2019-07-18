@@ -71,8 +71,21 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//3.登录成功后重定向到首页
-	w.Write([]byte("http://" + r.Host + "/static/view/home.html"))
-
+	//w.Write([]byte("http://" + r.Host + "/static/view/home.html"))
+	resp := util.RespMsg{
+		Code: 0,
+		Msg:  "OK",
+		Data: struct {
+			Location string
+			Username string
+			Token    string
+		}{
+			"http://" + r.Host + "/static/view/home.html",
+			username,
+			token,
+		},
+	}
+	w.Write(resp.JsonToBytes())
 }
 
 // GenToken: 生成用户 token
