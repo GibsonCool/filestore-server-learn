@@ -65,6 +65,7 @@
 </form>
 </body>
 
+
 <script lang="javascript">
     function onSignin() {
         var username = document.getElementById('username');
@@ -73,16 +74,14 @@
             url: "/user/signin",
             type: "POST",
             data: {"username" :  username.value, "password" :  password.value},
-            error: function(jqXHR, textStatus, errorThrown) {
-                if (textStatus == "error") {
-                    alert(textStatus + " : " +errorThrown);
-                } else {
-                    alert(textStatus);
-                }
+            error: function(err) {
+                alert(err);
             },
-            success: function(data, textStatus, jqXHR) {
-                // alert(data);
-                window.location.href = data;
+            success: function(body) {
+                var resp = JSON.parse(body);
+                localStorage.setItem("token", resp.data.Token)
+                localStorage.setItem("username", resp.data.Username)
+                window.location.href = resp.data.Location;
             }
         });
     }

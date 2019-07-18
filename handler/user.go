@@ -85,6 +85,41 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 			token,
 		},
 	}
+
+	//fmt.Println(resp.Data)
+	w.Write(resp.JsonToBytes())
+}
+
+// UserInfoHandler: 查询用户信息
+func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. 解析请求参数
+	r.ParseForm()
+
+	username := r.Form.Get("username")
+	token := r.Form.Get("token")
+
+	// 2. 验证 token 是否有效
+	isTokenValid := IsTokenValid(token)
+	if !isTokenValid {
+		w.WriteHeader(http.StatusForbidden)
+		//TODO: token失效跳转到登录页面让其重新登录
+		return
+	}
+
+	// 3. 查询用户信息
+	user, e := dblayer.GetUserInfo(username)
+	if e != nil {
+		fmt.Println(e.Error())
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	// 4. 组装并且响应用户数据
+	resp := util.RespMsg{
+		Code: 0,
+		Msg:  "OK",
+		Data: user,
+	}
 	w.Write(resp.JsonToBytes())
 }
 
@@ -95,4 +130,15 @@ func GenToken(username string) string {
 	ts := fmt.Sprint("%x", time.Now().Unix())
 	tokenPrefix := util.MD5([]byte(username + ts + tokenSalt))
 	return tokenPrefix + ts[:8]
+}
+
+// IsTokenValid: token 是否有效
+func IsTokenValid(token string) bool {
+	// TODO:判断 token 的时效性，是否过期
+
+	// TODO:从数据库表 tbl_user_token 查询 username 对应的 token 信息
+
+	// TODO: 对比两个 token 是否一致
+
+	return true
 }
