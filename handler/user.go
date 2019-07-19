@@ -53,6 +53,10 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 
 // SignInHandler: 登录接口
 func SignInHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		http.Redirect(w, r, "/static/view/signin.html", http.StatusFound)
+	}
+
 	r.ParseForm()
 
 	username := r.Form.Get("username")
@@ -71,6 +75,7 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 	upRes := dblayer.UpdateToken(username, token)
 	if !upRes {
 		w.Write([]byte("update token failed"))
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 

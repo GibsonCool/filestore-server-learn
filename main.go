@@ -13,7 +13,7 @@ func main() {
 		http.StripPrefix("/static/",
 			http.FileServer(http.Dir("./static"))))
 
-	// 文件操作路由
+	// 文件操作
 	http.HandleFunc("/file/upload", handler.UploadHandler)
 	http.HandleFunc("/file/upload/suc", handler.UploadSucHandler)
 	http.HandleFunc("/file/meta", handler.GetFileMetaHandler)
@@ -22,7 +22,7 @@ func main() {
 	http.HandleFunc("/file/update", handler.FileUpdateMetaUpdateHandler)
 	http.HandleFunc("/file/delete", handler.FiledeleteHandler)
 
-	// 用户操作路由
+	// 用户操作
 	http.HandleFunc("/user/signup", handler.SignupHandler)
 	http.HandleFunc("/user/signin", handler.SignInHandler)
 	http.HandleFunc("/user/info", handler.HTTPInterceptor(handler.UserInfoHandler))
