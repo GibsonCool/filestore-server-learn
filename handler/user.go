@@ -18,6 +18,7 @@ const (
 // SignupHandler: 处理用户注册请求
 func SignupHandler(w http.ResponseWriter, r *http.Request) {
 
+	//1.get请求直接返回注册页面内容
 	if r.Method == http.MethodGet {
 		bytes, e := ioutil.ReadFile("./static/view/signup.html")
 		if e != nil {
@@ -27,6 +28,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(bytes)
 	}
 
+	//2.解析校验参数的有效性
 	r.ParseForm()
 
 	username := r.Form.Get("username")
@@ -37,7 +39,9 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//3.用户密码加盐处理
 	encPasswd := util.Sha1([]byte(pwdSalt + passwd))
+	//4.存入数据库 tbl_user 表并返回结果
 	isSuccess := dblayer.UserSignUp(username, encPasswd)
 
 	if isSuccess {
@@ -70,7 +74,7 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//3.登录成功后重定向到首页
+	//3.登录成功后重定向到首页 并组装返回 username,token 重定向url等信息
 	//w.Write([]byte("http://" + r.Host + "/static/view/home.html"))
 	resp := util.RespMsg{
 		Code: 0,
@@ -96,15 +100,14 @@ func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	username := r.Form.Get("username")
-	token := r.Form.Get("token")
+	//token := r.Form.Get("token")
 
-	// 2. 验证 token 是否有效
-	isTokenValid := IsTokenValid(token)
-	if !isTokenValid {
-		w.WriteHeader(http.StatusForbidden)
-		//TODO: token失效跳转到登录页面让其重新登录
-		return
-	}
+	// 2. 验证 token 是否有效			// token 校验逻辑使用同一拦截器 HTTPInterceptor 处理
+	//isTokenValid := IsTokenValid(token)
+	//if !isTokenValid {
+	//	w.WriteHeader(http.StatusForbidden)
+	//	return
+	//}
 
 	// 3. 查询用户信息
 	user, e := dblayer.GetUserInfo(username)
@@ -127,13 +130,16 @@ func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 func GenToken(username string) string {
 	//token(40位字符 mde5 后得到的32位字符再加上截图时间戳前8位）生成规则：md5(username+timestamp+tokenSalt)+timestamp[:8]
 
-	ts := fmt.Sprint("%x", time.Now().Unix())
+	ts := fmt.Sprintf("%x", time.Now().Unix())
 	tokenPrefix := util.MD5([]byte(username + ts + tokenSalt))
 	return tokenPrefix + ts[:8]
 }
 
 // IsTokenValid: token 是否有效
 func IsTokenValid(token string) bool {
+	if len(token) != 40 {
+		return false
+	}
 	// TODO:判断 token 的时效性，是否过期
 
 	// TODO:从数据库表 tbl_user_token 查询 username 对应的 token 信息

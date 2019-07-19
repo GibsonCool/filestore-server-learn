@@ -65,13 +65,13 @@
 </body>
 
 <script lang="javascript">
-    window.onload = function () {
+    window.onload = function (message) {
         var username = document.getElementById('username');
         $.ajax({
             url: "/user/info?" + queryParams(),
             type: "POST",
             error: function (err) {
-                alert(err);
+                alert(JSON.stringify(err));
             },
             success: function (body) {
                 var resp = JSON.parse(body);

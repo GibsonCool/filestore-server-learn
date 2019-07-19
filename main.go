@@ -25,7 +25,7 @@ func main() {
 	// 用户操作路由
 	http.HandleFunc("/user/signup", handler.SignupHandler)
 	http.HandleFunc("/user/signin", handler.SignInHandler)
-	http.HandleFunc("/user/info", handler.UserInfoHandler)
+	http.HandleFunc("/user/info", handler.HTTPInterceptor(handler.UserInfoHandler))
 
 	err := http.ListenAndServe(":8080", nil)
 
