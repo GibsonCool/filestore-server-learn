@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 /*
@@ -16,6 +17,7 @@ import (
 		获取文件大小
 		判断文件是否存在
 */
+var CstZone = time.FixedZone("CST", 8*3600) // 东八
 
 type Sha1Stream struct {
 	_sha1 hash.Hash

@@ -135,7 +135,7 @@ func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 func GenToken(username string) string {
 	//token(40位字符 mde5 后得到的32位字符再加上截图时间戳前8位）生成规则：md5(username+timestamp+tokenSalt)+timestamp[:8]
 
-	ts := fmt.Sprintf("%x", time.Now().Unix())
+	ts := fmt.Sprintf("%x", time.Now().In(util.CstZone).Unix())
 	tokenPrefix := util.MD5([]byte(username + ts + tokenSalt))
 	return tokenPrefix + ts[:8]
 }

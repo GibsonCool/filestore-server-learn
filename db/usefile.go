@@ -2,6 +2,7 @@ package db
 
 import (
 	mydb "filestore-server/db/mysql"
+	"filestore-server/util"
 	"fmt"
 	"time"
 )
@@ -25,7 +26,7 @@ func OnUserFiledUploadFinished(username, filehash, filename string, filesize int
 		return false
 	}
 	defer stmt.Close()
-	_, e = stmt.Exec(username, filehash, filename, filesize, time.Now())
+	_, e = stmt.Exec(username, filehash, filename, filesize, time.Now().In(util.CstZone))
 
 	if e != nil {
 		return false

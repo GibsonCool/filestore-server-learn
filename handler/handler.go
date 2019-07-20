@@ -38,7 +38,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		fileMeta := meta.FileMeta{
 			FileName: header.Filename,
 			Location: "./tmp/" + header.Filename,
-			UploadAt: time.Now().Format("2006-01-02 15:04:05"),
+			UploadAt: time.Now().In(util.CstZone).Format("2006-01-02 15:04:05"),
 		}
 
 		//创建内容接收文件
@@ -199,5 +199,55 @@ func FiledeleteHandler(w http.ResponseWriter, r *http.Request) {
 	meta.RemoveFileMeta(fileSha1)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("删除成功，文件名称：" + getFileMeta.FileName))
+
+}
+
+// TryFastUploadHandler:尝试秒传接口
+func TryFastUploadHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	//1.解析请求参数
+	username := r.Form.Get("username")
+	filehash := r.Form.Get("filehash")
+	filename := r.Form.Get("filename")
+	filesize := r.Form.Get("filesize")
+
+	//2.从文件列表查询相同hash的文件记录
+	fileMeta, e := meta.GetFileMetaDB(filehash)
+	if e != nil {
+		fmt.Println(e.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	//3.查不到记录则返回秒传失败
+	if fileMeta.FileSha1 == "" {
+		resp := util.RespMsg{
+			Code: -1,
+			Msg:  "秒传失败，请访问普通上传接口",
+		}
+		w.Write(resp.JsonToBytes())
+		return
+	}
+
+	//4.上传过则将文件信息写入用户文件表，返回成功
+	parseFileSize, _ := strconv.ParseInt(filesize, 10, 64)
+
+	suc := dblayer.OnUserFiledUploadFinished(username, filehash, filename, parseFileSize)
+	if suc {
+		resp := util.RespMsg{
+			Code: 0,
+			Msg:  "秒传成功",
+		}
+		w.Write(resp.JsonToBytes())
+		return
+	} else {
+		resp := util.RespMsg{
+			Code: -2,
+			Msg:  "秒传失败，请稍后重试",
+		}
+		w.Write(resp.JsonToBytes())
+		return
+	}
 
 }
