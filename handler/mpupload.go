@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -56,4 +57,41 @@ func InitMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	//5.将响应初始化数据返回到客户端
 	w.Write(util.RespMsg{Code: 0, Msg: "OK", Data: upinfo}.JsonToBytes())
+}
+
+// 上传文件分块
+func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
+	//1.解析用户请求参数
+	r.ParseForm()
+	username := r.Form.Get("username")
+	uploadId := r.Form.Get("uploadid")
+	chunkIndex := r.Form.Get("index")
+
+	//2.获得 redis 的一个链接
+	rConn := redis.RedisPool().Get()
+	defer rConn.Close()
+
+	//3.获得文件句柄，用于存储分块内容
+	file, e := os.Create("/data" + uploadId + "/" + chunkIndex)
+	if e != nil {
+		w.Write(util.RespMsg{Code: -1, Msg: "Upload part failed:" + e.Error(), Data: nil}.JsonToBytes())
+		return
+	}
+	defer file.Close()
+
+	//读取内存中的分块内容写入到文件中
+	buf := make([]byte, 1023*1024)
+	for {
+		n, e := r.Body.Read(buf)
+		file.Write(buf[:n])
+		if e != nil {
+			break
+		}
+	}
+
+	//4.更新 redis 缓存状态
+	rConn.Do("HSET", hSetKeyPrefix+uploadId, "chkidx_"+chunkIndex, 1)
+
+	//5.返回结果给到客户端
+	w.Write(util.RespMsg{Code: 0, Msg: "OK", Data: nil}.JsonToBytes())
 }
