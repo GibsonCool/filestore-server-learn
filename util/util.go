@@ -4,10 +4,13 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"hash"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 )
 
@@ -79,4 +82,28 @@ func GetFileSize(filename string) int64 {
 		return nil
 	})
 	return result
+}
+
+// getCurrentFilePath:获取当前执行文件绝对路径
+func GetCurrentFilePath() string {
+	_, file, _, ok := runtime.Caller(1)
+	if !ok {
+		panic(" Can not get current file info")
+	}
+	lastIndex := strings.LastIndex(file, "/") + 1
+	file = file[:lastIndex]
+	return file
+}
+
+func GetCurrentFielParentPath() string {
+	_, file, _, ok := runtime.Caller(1)
+	if !ok {
+		panic(" Can not get current file info")
+	}
+	lastIndex := strings.LastIndex(file, "/")
+	file = file[:lastIndex]
+	lastIndex = strings.LastIndex(file, "/") + 1
+	parentPath := file[:lastIndex]
+	fmt.Println(parentPath)
+	return parentPath
 }

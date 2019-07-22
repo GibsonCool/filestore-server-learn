@@ -23,6 +23,11 @@ func main() {
 	http.HandleFunc("/file/delete", handler.FiledeleteHandler)
 	http.HandleFunc("/file/fastupload", handler.HTTPInterceptor(handler.TryFastUploadHandler))
 
+	//分块上传
+	http.HandleFunc("/file/mpupload/init", handler.HTTPInterceptor(handler.InitMultipartUploadHandler))
+	http.HandleFunc("/file/mpupload/uppart", handler.HTTPInterceptor(handler.UploadPartHandler))
+	http.HandleFunc("/file/mpupload/complete", handler.HTTPInterceptor(handler.CompleteUploadHander))
+
 	// 用户操作
 	http.HandleFunc("/user/signup", handler.SignupHandler)
 	http.HandleFunc("/user/signin", handler.SignInHandler)
