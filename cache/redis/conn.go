@@ -1,8 +1,8 @@
 package redis
 
 import (
+	"fmt"
 	"github.com/garyburd/redigo/redis"
-	"github.com/gpmgo/gopm/modules/log"
 	"time"
 )
 
@@ -22,7 +22,7 @@ func newRedisPool() *redis.Pool {
 			//1.打开连接
 			c, e := redis.Dial("tcp", redisHost)
 			if e != nil {
-				log.Error(e.Error())
+				fmt.Println("链接redies失败：", e.Error())
 				return nil, e
 			}
 			//2.访问认证  //如果没有设置密码不用执行这句话

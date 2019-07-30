@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gpmgo/gopm/modules/log"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"os"
@@ -115,6 +116,9 @@ func CompleteUploadHander(w http.ResponseWriter, r *http.Request) {
 	filehash := r.Form.Get("filehash")
 	filesize := r.Form.Get("filesize")
 	filename := r.Form.Get("filename")
+	//chunkCount, _ := strconv.Atoi(r.Form.Get("chunkCount"))
+
+	fmt.Printf("upid:%s  username:%s  fliehash:%s  filesize:%s   filename:%s\n", upid, username, filehash, filesize, filename)
 
 	//2.获得 redis 连接池中的一个连接
 	rConn := rPool.RedisPool().Get()
@@ -149,14 +153,46 @@ func CompleteUploadHander(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//4.TODO：合并分块
+	//4.合并分块
+	fpath := util.GetCurrentFielParentPath() + "/tmp/" + upid + "/"
+
+	resultFile := fpath + filename
+	fil, err := os.OpenFile(resultFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
+	if err != nil {
+		panic(err)
+		return
+	}
+
+	for i := 1; i <= chunkCount; i++ {
+		fname := fpath + strconv.Itoa(i)
+		f, err := os.OpenFile(fname, os.O_RDONLY, os.ModePerm)
+		if err != nil {
+			fmt.Printf("打开文件「%s」失败:%s", fname, err.Error())
+		}
+
+		bytes, err := ioutil.ReadAll(f)
+		if err != nil {
+			fmt.Printf("读取数据失败：%s", err.Error())
+		}
+		fil.Write(bytes)
+		f.Close()
+	}
+	//写入完成，删除分块文件
+	for i := 1; i <= chunkCount; i++ {
+		fname := fpath + strconv.Itoa(i)
+		err := os.Remove(fname)
+		if err != nil {
+			fmt.Printf("分块文件「%s」删除失败：%s", fname, err.Error())
+		}
+	}
+	defer fil.Close()
 
 	//5.更新唯一文件表及用户文件表
 	fsize, _ := strconv.Atoi(filesize)
 	fileUploadFinished := dblayer.OnFileUploadFinished(filehash, filename, int64(fsize), "")
 	userFiledUploadFinished := dblayer.OnUserFiledUploadFinished(username, filehash, filename, int64(fsize))
 
-	log.Info("fileUploadFinished:%b   userFiledUploadFinished:%b", fileUploadFinished, userFiledUploadFinished)
+	fmt.Printf("fileUploadFinished:%t   userFiledUploadFinished:%t", fileUploadFinished, userFiledUploadFinished)
 	//6.响应处理结果
 	respMsg := util.NewRespMsg(0, "OK", nil)
 	w.Write(respMsg.JsonToBytes())

@@ -74,7 +74,7 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 			fmt.Printf("已接受完：%d\n", res)
 		}
 	}
-
+	fmt.Println("分块上传完成~~~~~~~~~~")
 	return nil
 }
 
