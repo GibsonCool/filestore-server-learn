@@ -44,7 +44,7 @@ func newRedisPool() *redis.Pool {
 }
 
 //初始化
-func init() {
+func Setup() {
 	pool = newRedisPool()
 }
 

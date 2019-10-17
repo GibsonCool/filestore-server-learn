@@ -10,7 +10,7 @@ import (
 
 var db *sql.DB
 
-func init() {
+func Setup() {
 	db, _ = sql.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/fileserver?charset=utf8")
 
 	db.SetMaxOpenConns(1000)
@@ -19,6 +19,7 @@ func init() {
 		fmt.Printf("Failed to connect to mysql ,err :%s", e.Error())
 		os.Exit(1)
 	}
+
 }
 
 // DBConn: 返回数据库连接对象

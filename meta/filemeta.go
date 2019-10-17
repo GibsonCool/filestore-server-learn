@@ -28,7 +28,12 @@ var fileMetas map[string]FileMeta
 		同一个包的init执行顺序，golang没有明确定义，编程时要注意程序不要依赖这个执行顺序。
 		不同包的init函数按照包导入的依赖关系决定执行顺序。
 */
-func init() {
+
+//func init() {
+//	fileMetas = make(map[string]FileMeta)
+//}
+
+func Setup() {
 	fileMetas = make(map[string]FileMeta)
 }
 

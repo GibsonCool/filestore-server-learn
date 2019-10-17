@@ -1,12 +1,26 @@
 package main
 
 import (
+	myRedis "filestore-server/cache/redis"
+	mySql "filestore-server/db/mysql"
 	"filestore-server/handler"
+	fileMeta "filestore-server/meta"
 	"filestore-server/util"
 	"net/http"
 )
 
+/*
+	将各种初始化操作统一入口，替代 init() 方法。也便于理解和和控制初始化顺序
+*/
+func setupInit() {
+	mySql.Setup()
+	myRedis.Setup()
+	fileMeta.Setup()
+}
+
 func main() {
+	setupInit()
+
 	// 配置路由
 	//配置静态资源处理
 	http.Handle("/static/",
