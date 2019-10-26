@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	myDb "filestore-server/db/mysql"
 	"fmt"
+	"log"
 )
 
 /*
@@ -53,7 +54,7 @@ type TableFile struct {
 
 // GetFileMeta: 从 mysql 获取文件元信息
 func GetFileMeta(filehash string) (*TableFile, error) {
-	stmt, e := myDb.DBConn().Prepare("select file_sha1,file_addr,file_name,file_size from tbl_file where file_sha1=? and status =1 limit 1")
+	stmt, e := myDb.DBConn().Prepare("select file_sha1,file_addr,file_name,file_size from tbl_file where file_sha1=? and status=1 limit 1")
 	if e != nil {
 		fmt.Println(e.Error())
 		return nil, e
@@ -65,7 +66,7 @@ func GetFileMeta(filehash string) (*TableFile, error) {
 	if e != nil {
 		if e == sql.ErrNoRows {
 			// 查不到对应记录，同样返回参数空值和空错误
-			return &tfile, nil
+			return nil, nil
 		} else {
 			fmt.Println(e.Error())
 			return nil, e
@@ -73,6 +74,24 @@ func GetFileMeta(filehash string) (*TableFile, error) {
 	}
 
 	return &tfile, nil
+
+}
+
+func UpdateFileName(filehash string, filename string) bool {
+	stmt, e := myDb.DBConn().Prepare("update  tbl_file set file_name=?  where file_sha1=? and status =1 limit 1")
+	if e != nil {
+		fmt.Println(e.Error())
+		return false
+	}
+	defer stmt.Close()
+
+	_, err := stmt.Exec(filename, filehash)
+	if err != nil {
+		fmt.Println("修改文件名称失败,err:", err.Error())
+		return false
+	}
+
+	return true
 
 }
 
@@ -128,7 +147,11 @@ func GetFileMetaList(limit int) ([]TableFile, error) {
 		}
 		tfiles = append(tfiles, tfile)
 	}
-	fmt.Println(len(tfiles))
+
+	fmt.Println(len(values))
+	for index, file := range tfiles {
+		log.Println(index, file)
+	}
 	return tfiles, nil
 }
 

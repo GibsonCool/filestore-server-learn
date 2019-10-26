@@ -136,6 +136,8 @@ func CompleteUploadHander(w http.ResponseWriter, r *http.Request) {
 
 	totalCount := 0
 	chunkCount := 0
+
+	// 这通过 HGETALL 得到的结果 key 和 value 都是一个 []interface 中。所以每次取出后要  +2
 	for i := 0; i < len(data); i += 2 {
 		k := string(data[i].([]byte))
 		v := string(data[i+1].([]byte))
@@ -189,6 +191,21 @@ func CompleteUploadHander(w http.ResponseWriter, r *http.Request) {
 
 	//5.更新唯一文件表及用户文件表
 	fsize, _ := strconv.Atoi(filesize)
+
+	/*
+		这里存在的问题，并没有使用事物来执行两张表的操作，就有可能一张表操作成功，宁一张表失败的问题。可以在定义一个方法将两个 sql 操作放到一个事物中
+
+		// db, _ := sql.Open(...)
+		tx, err := db.Begin() // 创建tx对象，事务开始
+		tx.Exec("写文件表sql")
+		tx.Exec("写用户文件表sql")
+		err := tx.Commit()    // 事务提交，要么都成功，要么都失败
+		if err != nil {
+		    // commit失败, 事务回滚
+		    tx.Rollback()
+		}
+
+	*/
 	fileUploadFinished := dblayer.OnFileUploadFinished(filehash, filename, int64(fsize), "")
 	userFiledUploadFinished := dblayer.OnUserFiledUploadFinished(username, filehash, filename, int64(fsize))
 

@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	dblayer "filestore-server/db"
 	"filestore-server/meta"
+	"filestore-server/store/oss"
 	"filestore-server/util"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -59,6 +61,20 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		//将文件的句柄移到头部，计算文件的 sha1 值
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
+
+		/*
+			同时将文件写入 OSS 存储
+		*/
+		newFile.Seek(0, 0)
+		ossPath := "test/" + fileMeta.FileName
+		e = oss.OssBucket().PutObject(ossPath, newFile)
+		if e != nil {
+			fmt.Println(e.Error())
+			w.Write([]byte("upload failed!"))
+			return
+		}
+		fileMeta.Location = ossPath
+
 		//meta.UpdateFileMeta(fileMeta)
 		_ = meta.UpdateFileMetaDB(fileMeta)
 
@@ -133,12 +149,18 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	fsha1 := r.Form.Get("filehash")
 
 	// 根据下载参数文件的 hash 值查询出 文件元信息
-	fileMeta := meta.GetFileMeta(fsha1)
+	fileMeta, e := meta.GetFileMetaDB(fsha1)
+	if e != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(e.Error()))
+		return
+	}
 
 	// 根据元信息的文件路径打开文件，读取并返回给请求方
 	file, e := os.Open(fileMeta.Location)
 	if e != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(e.Error()))
 		return
 	}
 	defer file.Close()
@@ -173,9 +195,14 @@ func FileUpdateMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	curFileMeta := meta.GetFileMeta(fileSha1)
+	curFileMeta, e := meta.GetFileMetaDB(fileSha1)
+	if e != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(e.Error()))
+		return
+	}
 	curFileMeta.FileName = newFileName
-	meta.UpdateFileMeta(curFileMeta)
+	meta.UpdateFileMetaDB(*curFileMeta)
 
 	data, e := json.Marshal(curFileMeta)
 	if e != nil {
@@ -184,7 +211,7 @@ func FileUpdateMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	_, _ = w.Write(data)
 
 }
 
@@ -193,7 +220,13 @@ func FiledeleteHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	fileSha1 := r.Form.Get("filehash")
-	getFileMeta := meta.GetFileMeta(fileSha1)
+	getFileMeta, e := meta.GetFileMetaDB(fileSha1)
+	if e != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(e.Error()))
+		return
+	}
+
 	os.Remove(getFileMeta.Location)
 
 	meta.RemoveFileMeta(fileSha1)
@@ -249,5 +282,21 @@ func TryFastUploadHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(resp.JsonToBytes())
 		return
 	}
+
+}
+
+// DownloadURLHandler: 生成文件的下载地址
+func DownloadURLHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	filehash := r.Form.Get("filehash")
+	log.Println(filehash)
+
+	// 从文件表查找记录
+	fileMeta, e := meta.GetFileMetaDB(filehash)
+	if e != nil {
+		log.Println(e.Error())
+	}
+	signedUrl := oss.GetDownloadSignedUrl(fileMeta.Location)
+	w.Write([]byte(signedUrl))
 
 }

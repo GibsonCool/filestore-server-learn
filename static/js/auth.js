@@ -1,3 +1,5 @@
+var serverHost = "http://localhost:8080";
+
 function queryParams() {
     var username = localStorage.getItem("username");
     var token = localStorage.getItem("token");
