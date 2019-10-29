@@ -2,7 +2,7 @@ package meta
 
 import (
 	myDb "filestore-server/db"
-	"fmt"
+	"log"
 	"sort"
 )
 
@@ -66,8 +66,8 @@ func GetFileMetaDB(fileSha1 string) (*FileMeta, error) {
 		FileSize: tableFile.FileSize.Int64,
 		Location: tableFile.FileAddr.String,
 	}
-	fmt.Println("fmeta 数据：")
-	fmt.Println(fmeta)
+	log.Println("fmeta 数据：")
+	log.Println(fmeta)
 	return &fmeta, nil
 }
 

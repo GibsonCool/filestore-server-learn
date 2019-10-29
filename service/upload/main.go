@@ -2,10 +2,12 @@ package main
 
 import (
 	myRedis "filestore-server/cache/redis"
+	"filestore-server/config"
 	mySql "filestore-server/db/mysql"
 	"filestore-server/handler"
 	fileMeta "filestore-server/meta"
 	"filestore-server/util"
+	"log"
 	"net/http"
 )
 
@@ -51,7 +53,8 @@ func main() {
 	http.HandleFunc("/user/signin", handler.SignInHandler)
 	http.HandleFunc("/user/info", handler.HTTPInterceptor(handler.UserInfoHandler))
 
-	err := http.ListenAndServe(":8080", nil)
+	log.Printf("上传服务启动中，开始监听【%s】...\n", config.UploadServiceHost)
+	err := http.ListenAndServe(config.UploadServiceHost, nil)
 
 	util.SimplePrint(err, util.FailedStartServer)
 }

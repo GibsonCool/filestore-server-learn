@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/gpmgo/gopm/modules/log"
 	jsoniter "github.com/json-iterator/go"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,7 +18,7 @@ import (
 func multipartUpload(filename string, targetURL string, chunkSize int) error {
 	file, e := os.Open(filename)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return e
 	}
 	defer file.Close()
@@ -40,7 +40,7 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 		copy(bufCopied, buf)
 
 		go func(b []byte, curIdx int) {
-			fmt.Printf("upload_size:%d\n", len(b))
+			log.Printf("upload_size:%d\n", len(b))
 
 			response, err := http.Post(
 				targetURL+"&index="+strconv.Itoa(curIdx),
@@ -48,11 +48,11 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 				bytes.NewBuffer(b),
 			)
 			if err != nil {
-				fmt.Println(err.Error())
+				log.Println(err.Error())
 			}
 
 			body, err := ioutil.ReadAll(response.Body)
-			fmt.Printf("%+v   %+d\n", string(body), curIdx)
+			log.Printf("%+v   %+d\n", string(body), curIdx)
 			response.Body.Close()
 
 			ch <- curIdx
@@ -63,7 +63,7 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 			if e == io.EOF {
 				break
 			} else {
-				fmt.Println(e.Error())
+				log.Println(e.Error())
 			}
 		}
 	}
@@ -71,10 +71,10 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 	for idx := 0; idx < index; idx++ {
 		select {
 		case res := <-ch:
-			fmt.Printf("已接受完：%d\n", res)
+			log.Printf("已接受完：%d\n", res)
 		}
 	}
-	fmt.Println("分块上传完成~~~~~~~~~~")
+	log.Println("分块上传完成~~~~~~~~~~")
 	return nil
 }
 
@@ -96,7 +96,7 @@ func main() {
 		})
 
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		os.Exit(-1)
 	}
 
@@ -104,14 +104,14 @@ func main() {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		os.Exit(-1)
 	}
 
 	//2.得到 uploadID 以及服务端指定的分块大小 chunkSize
 	uploadID := jsoniter.Get(body, "data").Get("UploadId").ToString()
 	chunkSize := jsoniter.Get(body, "data").Get("ChunkSize").ToInt()
-	fmt.Printf("uploadid:%s   chunksize: %d\n", uploadID, chunkSize)
+	log.Printf("uploadid:%s   chunksize: %d\n", uploadID, chunkSize)
 
 	//3.请求分块上传接口
 	filename := "/Users/coulson/Downloads/test.zip"

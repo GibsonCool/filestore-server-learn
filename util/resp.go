@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 )
 
 // RespMsg: http响应数据的通用结构 使用 struct tags 处理json转换小写问题
@@ -17,7 +18,7 @@ func (resp *RespMsg) JsonToBytes() []byte {
 
 	bytes, e := json.Marshal(resp)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 	}
 	return bytes
 }

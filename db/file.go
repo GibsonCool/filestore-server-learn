@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	myDb "filestore-server/db/mysql"
-	"fmt"
 	"log"
 )
 
@@ -23,21 +22,21 @@ func OnFileUploadFinished(filehash string, filename string, filesize int64, file
 		"insert ignore into tbl_file (`file_sha1`,`file_name`,`file_size`,`file_addr`,`status`) values (?,?,?,?,1)")
 
 	if err != nil {
-		fmt.Println("Failed to prepare statement ,err :", err.Error())
+		log.Println("Failed to prepare statement ,err :", err.Error())
 	}
 
 	defer stmt.Close()
 
 	result, err := stmt.Exec(filehash, filename, filesize, fileaddr)
 	if err != nil {
-		fmt.Println("插入数据失败,err:", err.Error())
+		log.Println("插入数据失败,err:", err.Error())
 		return false
 	}
 
 	if rowsAffected, err := result.RowsAffected(); err == nil {
 		// 到这里说明 sql 执行成功了，但是还需要判断下文件是否已经存在，是否有数据插入 sql
 		if rowsAffected <= 0 {
-			fmt.Printf("File with hash:%s has been uploaded before", filehash)
+			log.Printf("File with hash:%s has been uploaded before", filehash)
 		}
 		return true
 	}
@@ -56,7 +55,7 @@ type TableFile struct {
 func GetFileMeta(filehash string) (*TableFile, error) {
 	stmt, e := myDb.DBConn().Prepare("select file_sha1,file_addr,file_name,file_size from tbl_file where file_sha1=? and status=1 limit 1")
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return nil, e
 	}
 	defer stmt.Close()
@@ -68,7 +67,7 @@ func GetFileMeta(filehash string) (*TableFile, error) {
 			// 查不到对应记录，同样返回参数空值和空错误
 			return nil, nil
 		} else {
-			fmt.Println(e.Error())
+			log.Println(e.Error())
 			return nil, e
 		}
 	}
@@ -80,14 +79,14 @@ func GetFileMeta(filehash string) (*TableFile, error) {
 func UpdateFileName(filehash string, filename string) bool {
 	stmt, e := myDb.DBConn().Prepare("update  tbl_file set file_name=?  where file_sha1=? and status =1 limit 1")
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return false
 	}
 	defer stmt.Close()
 
 	_, err := stmt.Exec(filename, filehash)
 	if err != nil {
-		fmt.Println("修改文件名称失败,err:", err.Error())
+		log.Println("修改文件名称失败,err:", err.Error())
 		return false
 	}
 
@@ -100,13 +99,13 @@ func IsFileUpload(filehash string) bool {
 	stmt, e := myDb.DBConn().Prepare(
 		"select 1 from tbl_file where file_sha1=? and status=1 limit 1")
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return false
 	}
 	defer stmt.Close()
 	rows, e := stmt.Query(filehash)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return false
 	} else if rows == nil || !rows.Next() {
 		return false
@@ -120,20 +119,20 @@ func GetFileMetaList(limit int) ([]TableFile, error) {
 	stmt, e := myDb.DBConn().Prepare(
 		"Select file_sha1,file_addr,file_name,file_size from tbl_file where status=1 limit ?")
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return nil, e
 	}
 	defer stmt.Close()
 
 	rows, e := stmt.Query(limit)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return nil, e
 	}
 
 	cloums, e := rows.Columns()
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return nil, e
 	}
 	values := make([]sql.RawBytes, len(cloums))
@@ -142,13 +141,13 @@ func GetFileMetaList(limit int) ([]TableFile, error) {
 		tfile := TableFile{}
 		e := rows.Scan(&tfile.FileHash, &tfile.FileAddr, &tfile.FileName, &tfile.FileSize)
 		if e != nil {
-			fmt.Println(e.Error())
+			log.Println(e.Error())
 			break
 		}
 		tfiles = append(tfiles, tfile)
 	}
 
-	fmt.Println(len(values))
+	log.Println(len(values))
 	for index, file := range tfiles {
 		log.Println(index, file)
 	}
@@ -160,22 +159,47 @@ func OnFiledRemoved(filehash string) bool {
 	stmt, e := myDb.DBConn().Prepare(
 		"update tbl_file set status=2 where file_sha1=? and status=1 limit 1")
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return false
 	}
 	defer stmt.Close()
 
 	result, e := stmt.Exec(filehash)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return false
 	}
 	if rowsAffected, e := result.RowsAffected(); e == nil {
 		if rowsAffected <= 0 {
-			fmt.Printf("File with hash:%s not upload ", filehash)
+			log.Printf("File with hash:%s not upload ", filehash)
 		}
 		return true
 	}
 
+	return false
+}
+
+// UploadFileLocation: 更新文件的存储地址
+func UploadFileLocation(filehash, fileaddr string) bool {
+	stmt, e := myDb.DBConn().Prepare(
+		"update tbl_file set file_addr = ? where file_sha1 = ? limit 1")
+	if e != nil {
+		log.Println("预编译SQL失败，err:" + e.Error())
+		return false
+	}
+	defer stmt.Close()
+
+	result, e := stmt.Exec(fileaddr, filehash)
+	if e != nil {
+		log.Println(e.Error())
+		return false
+	}
+
+	if rf, e := result.RowsAffected(); nil == e {
+		if rf <= 0 {
+			log.Printf("更新文件 location 失败，filehash:%s", filehash)
+		}
+		return true
+	}
 	return false
 }

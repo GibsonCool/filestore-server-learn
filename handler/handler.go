@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
+	"filestore-server/config"
 	dblayer "filestore-server/db"
 	"filestore-server/meta"
+	"filestore-server/mq"
+	"filestore-server/store"
 	"filestore-server/store/oss"
 	"filestore-server/util"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -28,57 +31,82 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(w, string(data))
 	} else if r.Method == http.MethodPost {
-		/*
-			接受文件流及存储到本地目录
-		*/
-
-		//读取文件内容
+		// 1.读取文件内容
 		file, header, e := r.FormFile("file")
 		util.SimplePrint(e, util.FailedGetData)
 		defer file.Close()
 
+		// 2.将文件转为 []byte
+		buf := bytes.NewBuffer(nil)
+		if _, e := io.Copy(buf, file); e != nil {
+			log.Printf("failed to get file data, err:%s\n", e.Error())
+			return
+		}
+
+		// 3.构建文件元信息
 		fileMeta := meta.FileMeta{
 			FileName: header.Filename,
+			FileSha1: util.Sha1(buf.Bytes()),
 			Location: "./tmp/" + header.Filename,
+			FileSize: int64(len(buf.Bytes())),
 			UploadAt: time.Now().In(util.CstZone).Format("2006-01-02 15:04:05"),
 		}
 
-		//创建内容接收文件
+		// 4.将文件写入临时的存储位置
 		newFile, e := os.Create(fileMeta.Location)
 		if e != nil {
-			fmt.Printf("Failed to create file, err:%s", e.Error())
+			log.Printf("Failed to create file, err:%s", e.Error())
 			return
 		}
 		defer newFile.Close()
 
-		//将网络文件内容从内存拷贝到创建的文件中，并复制文件大小 FileSize 字段
-		fileMeta.FileSize, e = io.Copy(newFile, file)
-		if e != nil {
-			fmt.Printf("Failed to save data into file ,err:%s", e.Error())
+		nByge, e := newFile.Write(buf.Bytes())
+		if int64(nByge) != fileMeta.FileSize || e != nil {
+			log.Printf("Failed to save data into file, writtenSize:%d  fileSize:%d, ", nByge, fileMeta.FileSize)
+			if e != nil {
+				log.Printf("err:%s\n", e.Error())
+			}
 			return
 		}
 
-		//将文件的句柄移到头部，计算文件的 sha1 值
-		newFile.Seek(0, 0)
-		fileMeta.FileSha1 = util.FileSha1(newFile)
-
-		/*
-			同时将文件写入 OSS 存储
-		*/
-		newFile.Seek(0, 0)
+		// 5.同步或异步将文件转移到 oss 中
+		newFile.Seek(0, 0) //将游标重新移回到文件头部
 		ossPath := "test/" + fileMeta.FileName
-		e = oss.OssBucket().PutObject(ossPath, newFile)
-		if e != nil {
-			fmt.Println(e.Error())
-			w.Write([]byte("upload failed!"))
-			return
-		}
-		fileMeta.Location = ossPath
+		if !config.AsyncTransferEnable {
+			// 同步任务直接写入
+			e = oss.OssBucket().PutObject(ossPath, newFile)
+			if e != nil {
+				log.Println(e.Error())
+				w.Write([]byte("upload failed!"))
+				return
+			}
+			fileMeta.Location = ossPath
+		} else {
+			// 异步任务转移到 rabbmitMq 任务队列
+			transferData := mq.TransferData{
+				FileHash:      fileMeta.FileSha1,
+				CurlLocation:  fileMeta.Location,
+				DestLocation:  ossPath,
+				DestStoreType: store.StoreOss,
+			}
+			pubData, _ := json.Marshal(transferData)
+			log.Printf("异步任务转移信息：%s", pubData)
+			pubSuc := mq.Publish(
+				config.TransExchangeName,
+				config.TransOSSRoutingKey,
+				pubData,
+			)
 
+			if !pubSuc {
+				//TODO: 当前任务发送转移消息失败，加入错误队列稍后重试。
+			}
+
+		}
+
+		// 6.更新用户文件表记录
 		//meta.UpdateFileMeta(fileMeta)
 		_ = meta.UpdateFileMetaDB(fileMeta)
 
-		// 更新用户文件记录
 		r.ParseForm()
 		username := r.Form.Get("username")
 		isSuc := dblayer.OnUserFiledUploadFinished(username, fileMeta.FileSha1, fileMeta.FileName, fileMeta.FileSize)
@@ -248,7 +276,7 @@ func TryFastUploadHandler(w http.ResponseWriter, r *http.Request) {
 	//2.从文件列表查询相同hash的文件记录
 	fileMeta, e := meta.GetFileMetaDB(filehash)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

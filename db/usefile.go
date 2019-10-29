@@ -3,7 +3,7 @@ package db
 import (
 	mydb "filestore-server/db/mysql"
 	"filestore-server/util"
-	"fmt"
+	"log"
 	"time"
 )
 
@@ -22,7 +22,7 @@ func OnUserFiledUploadFinished(username, filehash, filename string, filesize int
 		"insert ignore into tbl_user_file (`user_name`,`file_sha1`,`file_name`,`file_size`,`upload_at`) values (?,?,?,?,?)")
 
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return false
 	}
 	defer stmt.Close()
@@ -39,7 +39,7 @@ func QueryUserFileMetas(username string, limit int) ([]UserFile, error) {
 	stmt, e := mydb.DBConn().Prepare(
 		"select file_sha1,file_name,file_size,upload_at,last_update from tbl_user_file where user_name=? limit ?")
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return nil, e
 	}
 
@@ -47,7 +47,7 @@ func QueryUserFileMetas(username string, limit int) ([]UserFile, error) {
 
 	rows, e := stmt.Query(username, limit)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 	}
 
 	var userFiles []UserFile
@@ -57,7 +57,7 @@ func QueryUserFileMetas(username string, limit int) ([]UserFile, error) {
 		e := rows.Scan(&ufile.FileHash, &ufile.FileName, &ufile.FileSize, &ufile.UploadAt, &ufile.LastUpdated)
 
 		if e != nil {
-			fmt.Println(e.Error())
+			log.Println(e.Error())
 			break
 		}
 

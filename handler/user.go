@@ -5,6 +5,7 @@ import (
 	"filestore-server/util"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 )
@@ -45,7 +46,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	isSuccess := dblayer.UserSignUp(username, encPasswd)
 
 	if isSuccess {
-		w.Write([]byte("Success 注册成功"))
+		w.Write([]byte("SUCCESS"))
 	} else {
 		w.Write([]byte("Failed 注册失败"))
 	}
@@ -95,7 +96,7 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	//fmt.Println(resp.Data)
+	//log.Println(resp.Data)
 	w.Write(resp.JsonToBytes())
 }
 
@@ -117,7 +118,7 @@ func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	// 3. 查询用户信息
 	user, e := dblayer.GetUserInfo(username)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}

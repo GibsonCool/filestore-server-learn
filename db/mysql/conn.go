@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"database/sql"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
@@ -16,7 +15,7 @@ func Setup() {
 	db.SetMaxOpenConns(1000)
 	e := db.Ping()
 	if e != nil {
-		fmt.Printf("Failed to connect to mysql ,err :%s", e.Error())
+		log.Printf("Failed to connect to mysql ,err :%s", e.Error())
 		os.Exit(1)
 	}
 

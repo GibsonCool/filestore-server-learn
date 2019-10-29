@@ -4,9 +4,9 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"hash"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -104,6 +104,6 @@ func GetCurrentFielParentPath() string {
 	file = file[:lastIndex]
 	lastIndex = strings.LastIndex(file, "/") + 1
 	parentPath := file[:lastIndex]
-	fmt.Println(parentPath)
+	log.Println(parentPath)
 	return parentPath
 }

@@ -2,7 +2,7 @@ package db
 
 import (
 	myDb "filestore-server/db/mysql"
-	"fmt"
+	"log"
 )
 
 // User : 用户表model
@@ -19,14 +19,14 @@ type User struct {
 func UserSignUp(username string, passwd string) bool {
 	stmt, e := myDb.DBConn().Prepare(" insert ignore into tbl_user (`user_name`,`user_pwd`) values (?,?)")
 	if e != nil {
-		fmt.Println("failed to insert user,err:" + e.Error())
+		log.Println("failed to insert user,err:" + e.Error())
 		return false
 	}
 	defer stmt.Close()
 
 	result, e := stmt.Exec(username, passwd)
 	if e != nil {
-		fmt.Println("Failed to insert user, err:" + e.Error())
+		log.Println("Failed to insert user, err:" + e.Error())
 		return false
 	}
 
@@ -42,16 +42,16 @@ func UserSignUp(username string, passwd string) bool {
 func UserSignIn(username string, encpwd string) bool {
 	stmt, e := myDb.DBConn().Prepare("select * from tbl_user where user_name=? limit 1")
 	if e != nil {
-		fmt.Println("failed to query user,err:" + e.Error())
+		log.Println("failed to query user,err:" + e.Error())
 		return false
 	}
 
 	rows, e := stmt.Query(username)
 	if e != nil {
-		fmt.Println("Failed to query user by name:" + username + ",err:" + e.Error())
+		log.Println("Failed to query user by name:" + username + ",err:" + e.Error())
 		return false
 	} else if rows == nil {
-		fmt.Println("username not found:" + username)
+		log.Println("username not found:" + username)
 		return false
 	}
 
@@ -67,14 +67,14 @@ func UserSignIn(username string, encpwd string) bool {
 func UpdateToken(username string, token string) bool {
 	stmt, e := myDb.DBConn().Prepare("replace into tbl_user_token (`user_name`,`user_token`) values (?,?)")
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return false
 	}
 	defer stmt.Close()
 
 	_, e = stmt.Exec(username, token)
 	if e != nil {
-		fmt.Println(e.Error())
+		log.Println(e.Error())
 		return false
 	}
 
@@ -88,7 +88,7 @@ func GetUserInfo(username string) (User, error) {
 	stmt, err := myDb.DBConn().Prepare(
 		"select user_name,signup_at from tbl_user WHERE user_name=? limit 1")
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return user, err
 	}
 	defer stmt.Close()
