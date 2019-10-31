@@ -43,20 +43,20 @@ func Router() *gin.Engine {
 
 	router.POST("/file/update", handler.FileNameUpdateHandler)
 
-	//router.POST("/file/delete", handler.FiledDeleteHandler)
-	//
+	router.POST("/file/delete", handler.FiledDeleteHandler)
+
 	// 鉴权下载URL
 	router.POST("/file/downloadurl", handler.DownloadURLHandler)
 
-	//// 秒传接口
-	//router.POST("/file/fastupload", handler.TryFastUploadHandler)
-	//
-	////分块上传
-	//router.POST("/file/mpupload/init", handler.InitMultipartUploadHandler)
-	//
-	//router.POST("/file/mpupload/uppart", handler.UploadPartHandler)
-	//
-	//router.POST("/file/mpupload/complete", handler.CompleteUploadHander)
+	// 秒传接口
+	router.POST("/file/fastupload", handler.TryFastUploadHandler)
+
+	//分块上传
+	router.POST("/file/mpupload/init", handler.InitMultipartUploadHandler)
+
+	router.POST("/file/mpupload/uppart", handler.UploadPartHandler)
+
+	router.POST("/file/mpupload/complete", handler.CompleteUploadHander)
 
 	return router
 }

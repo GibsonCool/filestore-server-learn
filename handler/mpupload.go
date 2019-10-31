@@ -6,6 +6,7 @@ import (
 	"filestore-server/util"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
+	"github.com/gin-gonic/gin"
 	"github.com/gpmgo/gopm/modules/log"
 	"io/ioutil"
 	"math"
@@ -31,14 +32,13 @@ var chunkSize = 5 * 1024 * 1024 //5MB
 var hSetKeyPrefix = "MP_"
 
 // InitMultipartUploadHandler：初始化分块上传
-func InitMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
+func InitMultipartUploadHandler(c *gin.Context) {
 	//1.解析用户请求参数
-	r.ParseForm()
-	username := r.Form.Get("username")
-	filehash := r.Form.Get("filehash")
-	filesize, err := strconv.Atoi(r.Form.Get("filesize"))
+	username := c.Request.FormValue("username")
+	filehash := c.Request.FormValue("filehash")
+	filesize, err := strconv.Atoi(c.Request.FormValue("filesize"))
 	if err != nil {
-		w.Write((&util.RespMsg{Code: -1, Msg: "params invalid"}).JsonToBytes())
+		c.JSON(http.StatusOK, util.RespMsg{Code: -1, Msg: "params invalid"})
 		return
 	}
 
@@ -62,16 +62,15 @@ func InitMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 	rConn.Do("HSET", hSetKeyPrefix+upinfo.UploadId, "filsize", upinfo.FileSize)
 
 	//5.将响应初始化数据返回到客户端
-	w.Write((&util.RespMsg{Code: 0, Msg: "OK", Data: upinfo}).JsonToBytes())
+	c.JSON(http.StatusOK, util.RespMsg{Code: 0, Msg: "OK", Data: upinfo})
 }
 
 // UploadPartHandler：上传文件分块
-func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
+func UploadPartHandler(c *gin.Context) {
 	//1.解析用户请求参数
-	r.ParseForm()
 	//username := r.Form.Get("username")
-	uploadId := r.Form.Get("uploadid")
-	chunkIndex := r.Form.Get("index")
+	uploadId := c.Request.FormValue("uploadid")
+	chunkIndex := c.Request.FormValue("index")
 
 	fmt.Printf("uploadid:%s  chunkIndex:%s\n", uploadId, chunkIndex)
 	//2.获得 redis 的一个链接
@@ -84,7 +83,7 @@ func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	os.Mkdir(path.Dir(fpath), 0744)
 	file, e := os.Create(fpath)
 	if e != nil {
-		w.Write((&util.RespMsg{Code: -1, Msg: "Upload part failed:" + e.Error(), Data: nil}).JsonToBytes())
+		c.JSON(http.StatusOK, util.RespMsg{Code: -1, Msg: "Upload part failed:" + e.Error()})
 		return
 	}
 	defer file.Close()
@@ -92,7 +91,7 @@ func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	//读取内存中的分块内容写入到文件中
 	buf := make([]byte, 1023*1024)
 	for {
-		n, e := r.Body.Read(buf)
+		n, e := c.Request.Body.Read(buf)
 		file.Write(buf[:n])
 		if e != nil {
 			break
@@ -103,19 +102,17 @@ func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	rConn.Do("HSET", hSetKeyPrefix+uploadId, "chkidx_"+chunkIndex, 1)
 
 	//5.返回结果给到客户端
-	w.Write((&util.RespMsg{Code: 0, Msg: "OK", Data: nil}).JsonToBytes())
+	c.JSON(http.StatusOK, util.RespMsg{Code: 0, Msg: "OK", Data: nil})
 }
 
 // CompleteUploadHander:通知上传合并
-func CompleteUploadHander(w http.ResponseWriter, r *http.Request) {
+func CompleteUploadHander(c *gin.Context) {
 	//1.解析参数
-	r.ParseForm()
-
-	upid := r.Form.Get("uploadid")
-	username := r.Form.Get("username")
-	filehash := r.Form.Get("filehash")
-	filesize := r.Form.Get("filesize")
-	filename := r.Form.Get("filename")
+	upid := c.Request.FormValue("uploadid")
+	username := c.Request.FormValue("username")
+	filehash := c.Request.FormValue("filehash")
+	filesize := c.Request.FormValue("filesize")
+	filename := c.Request.FormValue("filename")
 	//chunkCount, _ := strconv.Atoi(r.Form.Get("chunkCount"))
 
 	fmt.Printf("upid:%s  username:%s  fliehash:%s  filesize:%s   filename:%s\n", upid, username, filehash, filesize, filename)
@@ -130,7 +127,7 @@ func CompleteUploadHander(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err.Error())
 		respMsg := util.RespMsg{Code: -1, Msg: "complete upload failed", Data: err.Error()}
-		w.Write(respMsg.JsonToBytes())
+		c.JSON(http.StatusOK, respMsg)
 		return
 	}
 
@@ -151,7 +148,7 @@ func CompleteUploadHander(w http.ResponseWriter, r *http.Request) {
 
 	if totalCount != chunkCount {
 		respMsg := util.NewRespMsg(-2, "invalid request", nil)
-		w.Write(respMsg.JsonToBytes())
+		c.JSON(http.StatusOK, respMsg)
 		return
 	}
 
@@ -212,5 +209,5 @@ func CompleteUploadHander(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("fileUploadFinished:%t   userFiledUploadFinished:%t", fileUploadFinished, userFiledUploadFinished)
 	//6.响应处理结果
 	respMsg := util.NewRespMsg(0, "OK", nil)
-	w.Write(respMsg.JsonToBytes())
+	c.JSON(http.StatusOK, respMsg)
 }
