@@ -67,3 +67,22 @@ func QueryUserFileMetas(username string, limit int) ([]UserFile, error) {
 
 	return userFiles, nil
 }
+
+// UpdateUserFileName：（重命名）修改用户文件表文件名称
+func UpdateUserFileName(username, newFileName, fileSha1, fileName string, fileSize int64) bool {
+	log.Println(username, newFileName, fileSha1, fileName, fileSize)
+	stmt, e := mydb.DBConn().Prepare(
+		"update tbl_user_file set file_name=? where user_name=? and file_sha1=? and file_name=? and file_size=?")
+
+	if e != nil {
+		log.Println(e.Error())
+		return false
+	}
+	defer stmt.Close()
+	_, e = stmt.Exec(newFileName, username, fileSha1, fileName, fileSize)
+
+	if e != nil {
+		return false
+	}
+	return true
+}

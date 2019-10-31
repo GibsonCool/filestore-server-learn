@@ -218,42 +218,51 @@ func DownloadHandler(c *gin.Context) {
 	c.FileAttachment(fileMeta.Location, fileMeta.FileName)
 }
 
-// FileUpdateMetaUpdateHandler: 修改文件元信息
-func FileUpdateMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-
-	opType := r.Form.Get("op")
-	fileSha1 := r.Form.Get("filehash")
-	newFileName := r.Form.Get("filename")
+// FileNameUpdateHandler: 修改文件名称
+func FileNameUpdateHandler(c *gin.Context) {
+	opType := c.Request.FormValue("op")
+	fileSha1 := c.Request.FormValue("filehash")
+	newFileName := c.Request.FormValue("filename")
+	userName := c.Request.FormValue("username")
 
 	if opType != "0" {
-		w.WriteHeader(http.StatusForbidden)
+		c.JSON(http.StatusOK, util.RespMsg{
+			Code: -1,
+			Msg:  "op 操作错误",
+		})
 		return
 	}
 
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	if c.Request.Method != http.MethodPost {
+		c.JSON(http.StatusOK, util.RespMsg{
+			Code: -2,
+			Msg:  "该接口不支持这种 http method:" + c.Request.Method,
+		})
 		return
 	}
 
 	curFileMeta, e := meta.GetFileMetaDB(fileSha1)
 	if e != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(e.Error()))
-		return
-	}
-	curFileMeta.FileName = newFileName
-	meta.UpdateFileMetaDB(*curFileMeta)
-
-	data, e := json.Marshal(curFileMeta)
-	if e != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.JSON(http.StatusOK, util.RespMsg{
+			Code: -2,
+			Msg:  fmt.Sprintf("获取文件信息失败,filehash:%s", fileSha1),
+		})
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(data)
+	tblUserFileSuc := meta.UpdateUserFileNameDB(userName, newFileName, *curFileMeta)
+	if !tblUserFileSuc {
+		c.JSON(http.StatusOK, util.RespMsg{
+			Code: -3,
+			Msg:  "更新用户文件表失败",
+		})
+		return
+	}
 
+	c.JSON(http.StatusOK, util.RespMsg{
+		Code: 0,
+		Msg:  "文件名修改成功！~",
+	})
 }
 
 // FiledeleteHandler: 删除文件及元信息

@@ -41,8 +41,8 @@ func Router() *gin.Engine {
 	router.GET("/file/download", handler.DownloadHandler)
 	router.POST("/file/download", handler.DownloadHandler)
 
-	//router.POST("/file/update", handler.FileMetaUpdateHandler)
-	//
+	router.POST("/file/update", handler.FileNameUpdateHandler)
+
 	//router.POST("/file/delete", handler.FiledDeleteHandler)
 	//
 	// 鉴权下载URL

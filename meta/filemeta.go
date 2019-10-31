@@ -49,6 +49,11 @@ func UpdateFileMetaDB(fmeta FileMeta) bool {
 	)
 }
 
+// UpdateUserFileMetaDB: 重命名用户文件名
+func UpdateUserFileNameDB(userName, newFileName string, fmeta FileMeta) bool {
+	return myDb.UpdateUserFileName(userName, newFileName, fmeta.FileSha1, fmeta.FileName, fmeta.FileSize)
+}
+
 // GetFileMeta: 通过 sha1 值获取文件的元信息
 func GetFileMeta(fileSha1 string) FileMeta {
 	return fileMetas[fileSha1]
