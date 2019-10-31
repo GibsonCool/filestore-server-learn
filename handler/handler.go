@@ -10,6 +10,7 @@ import (
 	"filestore-server/store"
 	"filestore-server/store/oss"
 	"filestore-server/util"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
 	"io/ioutil"
@@ -17,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -207,38 +209,13 @@ func FileQueryHandler(c *gin.Context) {
 }
 
 // DownloadHandler: 根据参数 filehash 下载文件
-func DownloadHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-
-	fsha1 := r.Form.Get("filehash")
+func DownloadHandler(c *gin.Context) {
+	fsha1 := c.Request.FormValue("filehash")
 
 	// 根据下载参数文件的 hash 值查询出 文件元信息
-	fileMeta, e := meta.GetFileMetaDB(fsha1)
-	if e != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(e.Error()))
-		return
-	}
+	fileMeta, _ := meta.GetFileMetaDB(fsha1)
 
-	// 根据元信息的文件路径打开文件，读取并返回给请求方
-	file, e := os.Open(fileMeta.Location)
-	if e != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(e.Error()))
-		return
-	}
-	defer file.Close()
-
-	data, e := ioutil.ReadAll(file)
-	if e != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// 设置一下 response header 让浏览器识别支持文件下载, 如果不设置是直接在浏览器展示
-	w.Header().Set("Content-Type", "application/octect-stream")
-	w.Header().Set("Content-Disposition", "attachment;filename=\""+fileMeta.FileName+"\"")
-	w.Write(data)
+	c.FileAttachment(fileMeta.Location, fileMeta.FileName)
 }
 
 // FileUpdateMetaUpdateHandler: 修改文件元信息
@@ -350,9 +327,8 @@ func TryFastUploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DownloadURLHandler: 生成文件的下载地址
-func DownloadURLHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	filehash := r.Form.Get("filehash")
+func DownloadURLHandler(c *gin.Context) {
+	filehash := c.Request.FormValue("filehash")
 	log.Println(filehash)
 
 	// 从文件表查找记录
@@ -360,7 +336,23 @@ func DownloadURLHandler(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		log.Println(e.Error())
 	}
-	signedUrl := oss.GetDownloadSignedUrl(fileMeta.Location)
-	w.Write([]byte(signedUrl))
+
+	if strings.HasPrefix(fileMeta.Location, "./tmp") {
+		//  获取本地下载路径
+		username := c.Request.FormValue("username")
+		token := c.Request.FormValue("token")
+		tmpUrl := fmt.Sprintf("http://%s/file/download?filehash=%s&username=%s&token=%s",
+			c.Request.Host, filehash, username, token)
+
+		c.Data(http.StatusOK, "octet-stream", []byte(tmpUrl))
+	} else if strings.HasPrefix(fileMeta.Location, "test/") {
+		// 获取阿里云 oss 下载路径
+		signedUrl := oss.GetDownloadSignedUrl(fileMeta.Location)
+
+		c.Data(http.StatusOK, "octet-stream", []byte(signedUrl))
+	} else {
+
+		c.Data(http.StatusOK, "octet-stream", []byte("无法识别的下载路径："+fileMeta.Location))
+	}
 
 }

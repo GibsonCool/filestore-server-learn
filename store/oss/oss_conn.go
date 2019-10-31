@@ -51,7 +51,7 @@ func GetDownloadSignedUrl(objName string) string {
 // BuildLifecycleRule: 针对指定的 bucket 设置生命周期规则
 func BuildLifecycleRule(bucketName string) {
 	// 表示前缀为 test/ 的对象文件距离最后修改时间10天后过期
-	ruleTest1 := oss.BuildLifecycleRuleByDays("rule1", "tesst/", true, 10)
+	ruleTest1 := oss.BuildLifecycleRuleByDays("rule1", "test/", true, 10)
 	rules := []oss.LifecycleRule{ruleTest1}
 
 	OssClient().SetBucketLifecycle(bucketName, rules)

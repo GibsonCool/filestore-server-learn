@@ -38,16 +38,16 @@ func Router() *gin.Engine {
 
 	router.POST("/file/query", handler.FileQueryHandler)
 
-	//router.GET("/file/download", handler.DownloadHandler)
-	//router.POST("/file/download", handler.DownloadHandler)
-	//
+	router.GET("/file/download", handler.DownloadHandler)
+	router.POST("/file/download", handler.DownloadHandler)
+
 	//router.POST("/file/update", handler.FileMetaUpdateHandler)
 	//
 	//router.POST("/file/delete", handler.FiledDeleteHandler)
 	//
-	//// 鉴权下载URL
-	//router.POST("/file/downloadurl", handler.DownloadURLHandler)
-	//
+	// 鉴权下载URL
+	router.POST("/file/downloadurl", handler.DownloadURLHandler)
+
 	//// 秒传接口
 	//router.POST("/file/fastupload", handler.TryFastUploadHandler)
 	//
