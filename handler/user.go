@@ -101,30 +101,19 @@ func DoSignInHandler(c *gin.Context) {
 	}
 
 	//log.Println(resp.Data)
-	//c.Data(http.StatusOK, "octet-stream", resp.JsonToBytes())
 	c.JSON(http.StatusOK, resp)
 }
 
 // UserInfoHandler: 查询用户信息
-func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
-	// 1. 解析请求参数
-	r.ParseForm()
-
-	username := r.Form.Get("username")
-	//token := r.Form.Get("token")
-
-	// 2. 验证 token 是否有效			// token 校验逻辑使用同一拦截器 HTTPInterceptor 处理
-	//isTokenValid := IsTokenValid(token)
-	//if !isTokenValid {
-	//	w.WriteHeader(http.StatusForbidden)
-	//	return
-	//}
+func UserInfoHandler(c *gin.Context) {
+	username := c.Request.FormValue("username")
 
 	// 3. 查询用户信息
 	user, e := dblayer.GetUserInfo(username)
 	if e != nil {
 		log.Println(e.Error())
-		w.WriteHeader(http.StatusForbidden)
+		c.JSON(http.StatusForbidden,
+			gin.H{})
 		return
 	}
 
@@ -134,7 +123,7 @@ func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 		Msg:  "OK",
 		Data: user,
 	}
-	w.Write(resp.JsonToBytes())
+	c.Data(http.StatusOK, "octet-stream", resp.JsonToBytes())
 }
 
 // GenToken: 生成用户 token

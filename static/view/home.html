@@ -108,7 +108,13 @@
         if (!body) {
           return;
         }
-        var data = JSON.parse(body);
+
+        if (body.code!=0){
+          alert(body.msg)
+          return
+        }
+
+        var data = body.data;
         if (!data || data.length <= 0) {
           return;
         }

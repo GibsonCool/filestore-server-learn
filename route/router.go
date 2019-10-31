@@ -21,24 +21,23 @@ func Router() *gin.Engine {
 
 	// 加入中间件，用于校验token的拦截器
 	router.Use(handler.HTTPInterceptor())
+	/*
+		Use 之后的所有 handler 都会经过拦截器进行 token 校验
+	*/
 
-	///*
-	//	Use 之后的所有 handler 都会及鞥过拦截器进行 token 校验
-	//*/
-	//
-	//// 用户信息接口
-	//router.POST("/user/info", handler.UserInfoHandler)
-	//
-	//// 文件操作
-	//router.GET("/file/upload", handler.UploadHandler)
-	//router.POST("/file/upload", handler.DoUploadHandler)
-	//
-	//router.GET("/file/upload/suc", handler.UploadSucHandler)
-	//
-	//router.GET("/file/meta", handler.GetFileMetaHandler)
-	//
-	//router.POST("/file/query", handler.FileQueryHandler)
-	//
+	// 用户信息接口
+	router.POST("/user/info", handler.UserInfoHandler)
+
+	// 文件操作
+	router.GET("/file/upload", handler.UploadHandler)
+	router.POST("/file/upload", handler.DoUploadHandler)
+
+	router.GET("/file/upload/suc", handler.UploadSucHandler)
+
+	router.GET("/file/meta", handler.GetFileMetaHandler)
+
+	router.POST("/file/query", handler.FileQueryHandler)
+
 	//router.GET("/file/download", handler.DownloadHandler)
 	//router.POST("/file/download", handler.DownloadHandler)
 	//
