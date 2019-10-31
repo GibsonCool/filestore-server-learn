@@ -4,7 +4,7 @@ import (
 	dblayer "filestore-server/db"
 	"filestore-server/util"
 	"fmt"
-	"io/ioutil"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"time"
@@ -17,26 +17,20 @@ const (
 )
 
 // SignupHandler: 处理用户注册请求
-func SignupHandler(w http.ResponseWriter, r *http.Request) {
+func SignupHandler(c *gin.Context) {
+	c.Redirect(http.StatusFound, "http://"+c.Request.Host+"/static/view/signup.html")
+}
 
-	//1.get请求直接返回注册页面内容
-	if r.Method == http.MethodGet {
-		bytes, e := ioutil.ReadFile("./static/view/signup.html")
-		if e != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Write(bytes)
-	}
-
-	//2.解析校验参数的有效性
-	r.ParseForm()
-
-	username := r.Form.Get("username")
-	passwd := r.Form.Get("password")
+func DoSignupHandler(c *gin.Context) {
+	//解析校验参数的有效性
+	username := c.Request.FormValue("username")
+	passwd := c.Request.FormValue("password")
 
 	if len(username) < 3 || len(passwd) < 5 {
-		w.Write([]byte("Invalid parameter: 用户名或密码不符合规范"))
+		c.JSON(http.StatusOK, util.RespMsg{
+			Code: -1,
+			Msg:  "Invalid parameter: 用户名或密码不符合规范",
+		})
 		return
 	}
 
@@ -46,28 +40,36 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	isSuccess := dblayer.UserSignUp(username, encPasswd)
 
 	if isSuccess {
-		w.Write([]byte("SUCCESS"))
+		c.JSON(http.StatusOK, util.RespMsg{
+			Code: 0,
+			Msg:  "注册成功",
+			Data: "/static/view/signin.html",
+		})
 	} else {
-		w.Write([]byte("Failed 注册失败"))
+		c.JSON(http.StatusOK, util.RespMsg{
+			Code: -1,
+			Msg:  "注册失败",
+		})
 	}
 }
 
 // SignInHandler: 登录接口
-func SignInHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		http.Redirect(w, r, "/static/view/signin.html", http.StatusFound)
-	}
+func SignInHandler(c *gin.Context) {
+	c.Redirect(http.StatusFound, "http://"+c.Request.Host+"/static/view/signin.html")
+}
 
-	r.ParseForm()
-
-	username := r.Form.Get("username")
-	passwd := r.Form.Get("password")
+func DoSignInHandler(c *gin.Context) {
+	username := c.Request.FormValue("username")
+	passwd := c.Request.FormValue("password")
 	encPasswd := util.Sha1([]byte(pwdSalt + passwd))
 
 	//1.校验用户名及密码
 	pwdChecked := dblayer.UserSignIn(username, encPasswd)
 	if !pwdChecked {
-		w.Write([]byte("Failed 用户名或密码错误"))
+		c.JSON(http.StatusOK, util.RespMsg{
+			Code: -1,
+			Msg:  "Failed 用户名或密码错误",
+		})
 		return
 	}
 
@@ -75,8 +77,10 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 	token := GenToken(username)
 	upRes := dblayer.UpdateToken(username, token)
 	if !upRes {
-		w.Write([]byte("update token failed"))
-		w.WriteHeader(http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, util.RespMsg{
+			Code: -2,
+			Msg:  "update token failed",
+		})
 		return
 	}
 
@@ -90,14 +94,15 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 			Username string
 			Token    string
 		}{
-			"http://" + r.Host + "/static/view/home.html",
+			"http://" + c.Request.Host + "/static/view/home.html",
 			username,
 			token,
 		},
 	}
 
 	//log.Println(resp.Data)
-	w.Write(resp.JsonToBytes())
+	//c.Data(http.StatusOK, "octet-stream", resp.JsonToBytes())
+	c.JSON(http.StatusOK, resp)
 }
 
 // UserInfoHandler: 查询用户信息
