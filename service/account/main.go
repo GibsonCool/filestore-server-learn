@@ -1,6 +1,7 @@
 package main
 
 import (
+	"filestore-server/config"
 	"filestore-server/service/account/handler"
 	"filestore-server/service/account/proto"
 	"github.com/micro/go-micro"
@@ -10,9 +11,10 @@ import (
 )
 
 func main() {
+	config.SetupInit()
 	// 创建一个 service
 	service := micro.NewService(
-		micro.Name("go.micro.service.user"),
+		micro.Name(config.MicroServiceUserName),
 		/*
 			默认情况下,consul 不会自动移除无效的实例，所以一般需要手动设置一个超时时间（健康检查TTL)
 

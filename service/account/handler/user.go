@@ -7,6 +7,7 @@ import (
 	dblayer "filestore-server/db"
 	"filestore-server/service/account/proto"
 	"filestore-server/util"
+	"log"
 )
 
 type User struct {
@@ -15,6 +16,8 @@ type User struct {
 func (*User) Signup(ctx context.Context, req *proto.ReqSignup, resp *proto.RespSignup) error {
 	username := req.Username
 	passwd := req.Passsword
+
+	log.Printf("接受到来自rpc的请求，username:%s  pwd:%s", username, passwd)
 
 	if len(username) < 3 || len(passwd) < 5 {
 		resp.Code = common.StatusParamInvalid

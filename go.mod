@@ -10,7 +10,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/json-iterator/go v1.1.7
 	github.com/micro/go-micro v1.14.0
-	github.com/micro/go-plugins v1.4.0 // indirect
+	github.com/micro/go-plugins v1.4.0
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 )
 
