@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"filestore-server/config"
 	dblayer "filestore-server/db"
 	"filestore-server/util"
 	"fmt"
@@ -8,12 +9,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-)
-
-const (
-	// 密码加盐值
-	pwdSalt   = "*#890"
-	tokenSalt = "_tokensalt"
 )
 
 // SignupHandler: 处理用户注册请求
@@ -35,7 +30,7 @@ func DoSignupHandler(c *gin.Context) {
 	}
 
 	//3.用户密码加盐处理
-	encPasswd := util.Sha1([]byte(pwdSalt + passwd))
+	encPasswd := util.Sha1([]byte(config.PwdSalt + passwd))
 	//4.存入数据库 tbl_user 表并返回结果
 	isSuccess := dblayer.UserSignUp(username, encPasswd)
 
@@ -61,7 +56,7 @@ func SignInHandler(c *gin.Context) {
 func DoSignInHandler(c *gin.Context) {
 	username := c.Request.FormValue("username")
 	passwd := c.Request.FormValue("password")
-	encPasswd := util.Sha1([]byte(pwdSalt + passwd))
+	encPasswd := util.Sha1([]byte(config.PwdSalt + passwd))
 
 	//1.校验用户名及密码
 	pwdChecked := dblayer.UserSignIn(username, encPasswd)
@@ -131,7 +126,7 @@ func GenToken(username string) string {
 	//token(40位字符 mde5 后得到的32位字符再加上截取时间戳前8位）生成规则：md5(username+timestamp+tokenSalt)+timestamp[:8]
 
 	ts := fmt.Sprintf("%x", time.Now().In(util.CstZone).Unix())
-	tokenPrefix := util.MD5([]byte(username + ts + tokenSalt))
+	tokenPrefix := util.MD5([]byte(username + ts + config.TokenSalt))
 	return tokenPrefix + ts[:8]
 }
 

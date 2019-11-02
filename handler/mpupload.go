@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
-	"github.com/gpmgo/gopm/modules/log"
 	"io/ioutil"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -125,7 +125,7 @@ func CompleteUploadHander(c *gin.Context) {
 
 	data, err := redis.Values(rConn.Do("HGETALL", hSetKeyPrefix+upid))
 	if err != nil {
-		log.Error(err.Error())
+		log.Println(err.Error())
 		respMsg := util.RespMsg{Code: -1, Msg: "complete upload failed", Data: err.Error()}
 		c.JSON(http.StatusOK, respMsg)
 		return
