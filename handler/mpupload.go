@@ -46,6 +46,8 @@ func InitMultipartUploadHandler(c *gin.Context) {
 	rConn := rPool.RedisPool().Get()
 	defer rConn.Close()
 
+	resultCount := int(math.Ceil(float64(filesize) / float64(chunkSize)))
+	log.Printf("向上取整 filesize:%d  chunkSize:%d  result%d \n", filesize, chunkSize, resultCount)
 	//3.生成分块上传的初始化信息
 	upinfo := MultiparUploadInfo{
 		FileHash:  filehash,
@@ -53,7 +55,7 @@ func InitMultipartUploadHandler(c *gin.Context) {
 		UploadId:  username + fmt.Sprintf("%x", time.Now().UnixNano()),
 		ChunkSize: chunkSize,
 		// 文件总大小/分块大小  然后向上取整
-		ChunkCount: int(math.Ceil(float64(filesize / chunkSize))),
+		ChunkCount: resultCount,
 	}
 
 	//4.将初始化信息写入到 redis 缓存
@@ -72,7 +74,7 @@ func UploadPartHandler(c *gin.Context) {
 	uploadId := c.Request.FormValue("uploadid")
 	chunkIndex := c.Request.FormValue("index")
 
-	fmt.Printf("uploadid:%s  chunkIndex:%s\n", uploadId, chunkIndex)
+	log.Printf("uploadid:%s  chunkIndex:%s\n", uploadId, chunkIndex)
 	//2.获得 redis 的一个链接
 	rConn := rPool.RedisPool().Get()
 	defer rConn.Close()
@@ -115,7 +117,7 @@ func CompleteUploadHander(c *gin.Context) {
 	filename := c.Request.FormValue("filename")
 	//chunkCount, _ := strconv.Atoi(r.Form.Get("chunkCount"))
 
-	fmt.Printf("upid:%s  username:%s  fliehash:%s  filesize:%s   filename:%s\n", upid, username, filehash, filesize, filename)
+	log.Printf("upid:%s  username:%s  fliehash:%s  filesize:%s   filename:%s\n", upid, username, filehash, filesize, filename)
 
 	//2.获得 redis 连接池中的一个连接
 	rConn := rPool.RedisPool().Get()
@@ -138,7 +140,7 @@ func CompleteUploadHander(c *gin.Context) {
 	for i := 0; i < len(data); i += 2 {
 		k := string(data[i].([]byte))
 		v := string(data[i+1].([]byte))
-		fmt.Printf("k:%s   v:%s\n", k, v)
+		log.Printf("k:%s   v:%s\n", k, v)
 		if k == "chunkcount" {
 			totalCount, _ = strconv.Atoi(v)
 		} else if strings.HasPrefix(k, "chkidx_") && v == "1" {
@@ -147,6 +149,7 @@ func CompleteUploadHander(c *gin.Context) {
 	}
 
 	if totalCount != chunkCount {
+		log.Printf("totalCount:%d  chunkCount:%d\n", totalCount, chunkCount)
 		respMsg := util.NewRespMsg(-2, "invalid request", nil)
 		c.JSON(http.StatusOK, respMsg)
 		return
@@ -166,12 +169,12 @@ func CompleteUploadHander(c *gin.Context) {
 		fname := fpath + strconv.Itoa(i)
 		f, err := os.OpenFile(fname, os.O_RDONLY, os.ModePerm)
 		if err != nil {
-			fmt.Printf("打开文件「%s」失败:%s", fname, err.Error())
+			log.Printf("打开文件「%s」失败:%s", fname, err.Error())
 		}
 
 		bytes, err := ioutil.ReadAll(f)
 		if err != nil {
-			fmt.Printf("读取数据失败：%s", err.Error())
+			log.Printf("读取数据失败：%s", err.Error())
 		}
 		fil.Write(bytes)
 		f.Close()
@@ -181,7 +184,7 @@ func CompleteUploadHander(c *gin.Context) {
 		fname := fpath + strconv.Itoa(i)
 		err := os.Remove(fname)
 		if err != nil {
-			fmt.Printf("分块文件「%s」删除失败：%s", fname, err.Error())
+			log.Printf("分块文件「%s」删除失败：%s", fname, err.Error())
 		}
 	}
 	defer fil.Close()
@@ -206,7 +209,7 @@ func CompleteUploadHander(c *gin.Context) {
 	fileUploadFinished := dblayer.OnFileUploadFinished(filehash, filename, int64(fsize), "")
 	userFiledUploadFinished := dblayer.OnUserFiledUploadFinished(username, filehash, filename, int64(fsize))
 
-	fmt.Printf("fileUploadFinished:%t   userFiledUploadFinished:%t", fileUploadFinished, userFiledUploadFinished)
+	log.Printf("fileUploadFinished:%t   userFiledUploadFinished:%t", fileUploadFinished, userFiledUploadFinished)
 	//6.响应处理结果
 	respMsg := util.NewRespMsg(0, "OK", nil)
 	c.JSON(http.StatusOK, respMsg)

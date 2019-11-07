@@ -23,13 +23,16 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 	}
 	defer file.Close()
 
+	// 文件内容
 	bufRedader := bufio.NewReader(file)
 	index := 0
 
 	ch := make(chan int)
+	// 每次读取 chunkSize 大小内容
 	buf := make([]byte, chunkSize)
 
 	for {
+		// 每次从文件中读取 buf 大小的内容n,下次会在已读取的位置后面开始在读取 n 的大小内容
 		n, e := bufRedader.Read(buf)
 		if n <= 0 {
 			break
@@ -82,9 +85,11 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 	测试分块上传
 */
 func main() {
-	username := "admin"
-	token := "d2d123327dfc6e25d24a73da7bd6007b5d328b77"
-	filehash := "c0b9096a93c3320ea576bab9144815b55ce000ee"
+	username := "test1"
+	token := "15e6be7c2e0ede83193960b1aebc9db65db7a560"
+	filehash := "12a54dddd54e6cb083c09a692d5c579c094a2e69"
+	fileSize := "64549977"
+	oldFileName := "1.mp4"
 
 	// 1.请求初始化分块上传接口
 	resp, err := http.PostForm("http://localhost:8080/file/mpupload/init",
@@ -92,7 +97,7 @@ func main() {
 			"username": {username},
 			"token":    {token},
 			"filehash": {filehash},
-			"filesize": {"268435456"},
+			"filesize": {fileSize},
 		})
 
 	if err != nil {
@@ -114,13 +119,13 @@ func main() {
 	log.Printf("uploadid:%s   chunksize: %d\n", uploadID, chunkSize)
 
 	//3.请求分块上传接口
-	filename := "/Users/coulson/Downloads/test.zip"
+	filename := "/Users/coulson/Downloads/" + oldFileName
 	tURL := "http://localhost:8080/file/mpupload/uppart?" +
 		"username=" + username + "&token=" + token + "&uploadid=" + uploadID
 	err = multipartUpload(filename, tURL, chunkSize)
 
 	if err != nil {
-		log.Error(err.Error())
+		log.Println(err.Error())
 		//os.Exit(-1)
 	}
 
@@ -130,19 +135,19 @@ func main() {
 			"username": {username},
 			"token":    {token},
 			"filehash": {filehash},
-			"filesize": {"268435456"},
-			"filename": {"test.zip"},
+			"filesize": {fileSize},
+			"filename": {oldFileName},
 			"uploadid": {uploadID},
 		})
 	if err != nil {
-		log.Error(err.Error())
+		log.Println(err.Error())
 		//os.Exit(-1)
 	}
 	defer response.Body.Close()
 
 	all, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Error(err.Error())
+		log.Println(err.Error())
 		//os.Exit(-1)
 	}
 	fmt.Sprintf("complete result:%s\n", string(all))
